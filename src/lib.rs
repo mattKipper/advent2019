@@ -42,7 +42,7 @@ pub fn input() -> Option<(String, SubProblem)>
 
 pub mod intcode {
 
-    use std::io::{stdout,stdin,Write};
+    use std::io::{BufRead,Write};
 
     #[derive(Debug)]
     enum AddressingMode {
@@ -189,7 +189,8 @@ pub mod intcode {
         }
     }
 
-    fn execute_instruction(program: &mut Vec<i64>, instruction: &Instruction, pc: &mut usize) {
+    fn execute_instruction<I,O>(program: &mut Vec<i64>, instruction: &Instruction, pc: &mut usize, is: &mut I, os: &mut O) where
+        I: BufRead, O: Write {
         match instruction {
             Instruction::Add(a,b,o) => {
                 let a = input(program, a);
@@ -206,17 +207,18 @@ pub mod intcode {
                 *pc = *pc + 4;
             },
             Instruction::Input(o) => {
-                print!("Enter Input: ");
-                stdout().flush().unwrap();
-                let mut input = String::new();
-                stdin().read_line(&mut input).unwrap();
+                write!(os, "Enter Input: ").unwrap();
+                os.flush().unwrap();
+                let mut input_data = String::new();
+                is.read_line(&mut input_data).unwrap();
                 let o = o.value as usize;
-                let v = input.trim().parse::<i64>().unwrap();
+                let v = input_data.trim().parse::<i64>().unwrap();
                 program[o] = v;
                 *pc = *pc + 2;
             },
             Instruction::Output(i) => {
-                println!("{}", input(program, i));
+                write!(os, "{}", input(program, i)).unwrap();
+                os.flush().unwrap();
                 *pc = *pc + 2;
             },
             Instruction::JumpNonZero(i, o) => {
@@ -258,7 +260,8 @@ pub mod intcode {
     }
 
 
-    pub fn execute(program: &mut Vec<i64>) 
+    pub fn execute<I,O>(program: &mut Vec<i64>, input: &mut I, output: &mut O) where
+        I: BufRead, O: Write
     {
         let mut pc: usize = 0;
         while pc < program.len() {
@@ -268,8 +271,7 @@ pub mod intcode {
                     break
                 },
                 Some(instruction) => {
-                    //println!("pc: {}, instruction: {:?}, program:\n{:?}", pc, instruction, program);
-                    execute_instruction(program, &instruction, &mut pc);
+                    execute_instruction(program, &instruction, &mut pc, input, output);
                 }
             };
         }

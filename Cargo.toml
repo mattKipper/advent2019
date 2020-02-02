@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 structopt = "0.3"
 ego-tree = "0.6.2"
+factorial = "0.2.0"
+itertools = "0.8.2"

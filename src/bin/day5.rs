@@ -1,4 +1,5 @@
 extern crate aoc;
+use std::io;
 fn main()
 {
     match aoc::input() {
@@ -9,7 +10,10 @@ fn main()
 
             match sub {
                 _ => {
-                    aoc::intcode::execute(&mut program);
+                    let stdin = io::stdin();
+                    let mut stdout = io::stdout();
+
+                    aoc::intcode::execute(&mut program, &mut stdin.lock(), &mut stdout);
                     std::process::exit(0);
                 }
             };

@@ -1,10 +1,13 @@
 extern crate aoc;
+use std::io;
 
 fn solve(program: &mut Vec<i64>) -> i64 {
     program[1] = 12;
     program[2] = 2;
 
-    aoc::intcode::execute(program);
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    aoc::intcode::execute(program, &mut stdin.lock(), &mut stdout);
 
     program[0]
 }
@@ -17,7 +20,9 @@ fn solve_alt(program: &mut Vec<i64>) -> i64 {
             p[1] = noun;
             p[2] = verb;
 
-            aoc::intcode::execute(&mut p);
+            let stdin = io::stdin();
+            let mut stdout = io::stdout();
+            aoc::intcode::execute(&mut p, &mut stdin.lock(), &mut stdout);
 
             if p[0] == 19690720 {
                 return (100 * noun) + verb;
