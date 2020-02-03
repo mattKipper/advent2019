@@ -1,7 +1,7 @@
 extern crate aoc;
-use std::io;
+use aoc::intcode;
 
-fn generate_permutations(k: usize, input: &mut Vec<usize>, output: &mut Vec<Vec<usize>>)
+fn generate_permutations(k: usize, input: &mut Vec<i64>, output: &mut Vec<Vec<i64>>)
 {
     match k {
         1 => output.push(input.clone()),
@@ -23,26 +23,45 @@ fn generate_permutations(k: usize, input: &mut Vec<usize>, output: &mut Vec<Vec<
     };
 }
 
-fn phase_permutations(stages: usize) -> Vec<Vec<usize>>
+fn phase_permutations(stages: usize) -> Vec<Vec<i64>>
 {
-    let mut seed: Vec<usize> = (0..stages).collect();
-    let mut out: Vec<Vec<usize>> = Vec::new();
+    let mut seed: Vec<i64> = (0..stages as i64).collect();
+    let mut out: Vec<Vec<i64>> = Vec::new();
 
     generate_permutations(stages, &mut seed, &mut out);
 
     out
 }
 
+
 fn main()
 {
     match aoc::input() {
 
         Some((input,_)) => {
-            let mut program = aoc::intcode::parse_input(input);
-            let stdin = io::stdin();
-            let mut stdout = io::stdout();
+            let program = intcode::parse_input(input);
 
-            aoc::intcode::execute(&mut program, &mut stdin.lock(), &mut stdout);
+            let mut max_output: i64 = 0;
+            let phase_perms = phase_permutations(5);
+
+            for phases in phase_perms {
+
+                let mut stage_input = 0;
+                let mut output = aoc::intcode::OutputCollector::new();
+
+                for phase in phases {
+                    let mut program = program.clone();
+                    let mut input = intcode::InputProvider::new(vec![phase,stage_input]);
+                    intcode::execute(&mut program, &mut input, &mut output);
+                    
+                    stage_input = output.outputs.last().unwrap().clone();
+                }
+
+                max_output = std::cmp::max(max_output, output.outputs.last().unwrap().clone());
+            }
+
+            println!("{}", max_output);
+
             std::process::exit(0);
         },
         None => {

@@ -42,7 +42,85 @@ pub fn input() -> Option<(String, SubProblem)>
 
 pub mod intcode {
 
-    use std::io::{BufRead,Write};
+    use std::io::{Read,BufRead,Write,Error,ErrorKind};
+
+    pub struct InputProvider {
+        pub inputs: String
+    }
+    
+    impl InputProvider {
+        pub fn new(inputs: Vec<i64>) -> InputProvider {
+            let str_inputs: Vec<String> = inputs.iter().map(i64::to_string).collect();
+            let mut input: String = str_inputs.join("\n");
+            input.push('\n');
+            InputProvider { inputs: input }
+        }
+    }
+
+    impl Read for InputProvider {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+            if self.inputs.is_empty() {
+                Ok(0)
+            }
+            else {
+                let mut bytes: usize = 0;
+                for i in 0..std::cmp::min(buf.len(), self.inputs.len()) {
+                    let c = self.inputs.remove(0);
+                    buf[i] = c as u8;
+                    bytes += 1;
+                }
+                Ok(bytes)
+            }
+        }
+    }
+
+    impl BufRead for InputProvider {
+        fn fill_buf(&mut self) -> Result<&[u8], Error> {
+            if self.inputs.is_empty() {
+               Err(Error::new(ErrorKind::Other, "Input Exhausted"))
+            }
+            else {
+                Ok(self.inputs.as_bytes())
+            }
+        }
+
+        fn consume(&mut self, amt: usize) {
+            for _ in 0..amt {
+                self.inputs.remove(0);
+            }
+        }
+    }
+
+    pub struct OutputCollector {
+        pub outputs: Vec<i64>
+    }
+
+    impl OutputCollector {
+        pub fn new() -> OutputCollector {
+            OutputCollector { outputs: Vec::new() }
+        }
+    }
+
+    impl Write for OutputCollector {
+        fn write(&mut self, buf: &[u8]) -> Result<usize,Error> {
+            match std::str::from_utf8(buf) {
+                Ok(s) => {
+                    match s.trim().parse::<i64>() {
+                        Ok(n) => { 
+                            self.outputs.push(n);
+                            Ok(buf.len())
+                        }
+                        Err(_) => Err(Error::new(ErrorKind::Other, "Parse error"))
+                    }
+                },
+                Err(_) => Err(Error::new(ErrorKind::Other, "Parse error"))
+            }
+        }
+
+        fn flush(&mut self) -> Result<(),Error> {
+            Ok(())
+        }
+    }
 
     #[derive(Debug)]
     enum AddressingMode {
@@ -207,8 +285,6 @@ pub mod intcode {
                 *pc = *pc + 4;
             },
             Instruction::Input(o) => {
-                write!(os, "Enter Input: ").unwrap();
-                os.flush().unwrap();
                 let mut input_data = String::new();
                 is.read_line(&mut input_data).unwrap();
                 let o = o.value as usize;
